@@ -20,7 +20,9 @@ class User extends Authenticatable {
         'name',
         'email',
         'password',
-        'points'
+        'points',
+        'isIEE',
+        'refUser'
     ];
 
     /**
@@ -31,6 +33,9 @@ class User extends Authenticatable {
     protected $hidden = [
         'password',
         'remember_token',
+        'canAdministrate',
+        'updated_at',
+        'email_verified_at'
     ];
 
     /**
@@ -41,4 +46,19 @@ class User extends Authenticatable {
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    public function isAdmin() {
+        return $this->canAdministrate;
+    }
+    public function isIEE() {
+        return $this->isIEE;
+    }
+
+    public function refUserID() {
+        return $this->refUser;
+    }
+    public function refUser() {
+        $User = User::find($this->refUser);
+        return $User ?: null;
+    }
 }

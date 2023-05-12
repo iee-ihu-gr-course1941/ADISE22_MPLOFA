@@ -51,7 +51,7 @@ class GameState extends Model {
         return $this->status;
     }
     public function cards_played() {
-       return is_null($this->cards_played) ?: json_encode(['cards_played'=>[],'as'=>['count'=>0,'symbols'=>[]]]);
+       return  is_string(json_decode($this->cards_played)) ? json_decode(json_decode($this->cards_played)) : json_decode($this->cards_played);
     }
     public function player_cards() {
        return $this->player_cardsjson_encode($this->player_cards);

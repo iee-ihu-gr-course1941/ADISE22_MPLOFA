@@ -7,6 +7,7 @@ use App\Http\Resources\RoomResource;
 use App\Models\Card;
 use App\Models\Game;
 use App\Models\GameState;
+use App\Models\Move;
 use App\Models\Room;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -32,10 +33,12 @@ class GameController extends Controller {
     /**
      * Show the form for creating a new resource.
      *
-     * @return \Inertia\Response
+     * @return \Illuminate\Http\RedirectResponse|\Inertia\Response
      */
     public function create(Request $request) {
         $Room = $request->session()->get('Room');
+        if(is_null($Room))
+            return Redirect::route('home');
         $Game = new Game;
         $Game->save();
         $Room->GameId = $Game->id;
@@ -52,46 +55,46 @@ class GameController extends Controller {
      * Store a newly created resource in storage.
      *
      * @param Request $request
-     * @return JsonResponse|\Inertia\Response
+     * @return JsonResponse|\Illuminate\Http\RedirectResponse|\Inertia\Response
      */
     public function store(Request $request) {
-        $Room = Room::find($request->only(['Room']));
+        $input = $request->only(['Room']);
+        if(is_null($input['Room']))
+            return Redirect::route('home');
+
+        $Room = Room::find($input['Room']);
 //            ->session()->get('Room');
-        if(!is_null($Room)){
+
+        if(!is_null($Room)) {
             $User = $request->user();
-            $Active_Game = Game::find($Room[0]->GameId);
+            $Active_Game = Game::find($Room->GameId);
+            if($Active_Game->hasEnded())
+                return Redirect::route('home');
             $First_State = GameState::where('game_id',$Active_Game->id)->where('sequence_number',0)->get();
 
             if($First_State->isEmpty()) {
-                $Active_Game->players = json_encode(['player1' => $Room[0]->Owner()->id,'player2' => $Room[0]->Player()->id]);
+                $Active_Game->players = json_encode(['player1' => $Room->Owner()->id,'player2' => $Room->Player()->id]);
                 $Active_Game->save();
                 $GameState = $this->initiate($Active_Game);
             }
             else
-                $GameState = new GameStateResource($First_State[0]);
+                $GameState = new GameStateResource($First_State[0],null);
 
-            $Player1 = $Room[0]->Owner();
-            $Player2 = $Room[0]->Player();
+            $Player1 = $Room->Owner();
+            $Player2 = $Room->Player();
 
             return Inertia::render('Game/GameCanvas',
                 [
-                    'Room' => new RoomResource($Room[0]),
+//                    'Room' => new RoomResource($Room[0]),
                     'Game'=> $GameState,
-                    'Players'=>['Player1'=>$Player1,'Player2'=>$Player2]
+                    'Players'=>['Player1'=>$Player1,'Player2'=>$Player2],
+                    'GameObject' => $Active_Game,
                 ]);
         }
+        else
+            return Redirect::route('home');
     }
 
-    public function startGameForPlayer(Request $request) {
-        $input = $request->only('RoomId');
-        $Room = Room::find($input['RoomId']);
-        $Active_Game = Game::find($Room->GameId);
-        $Player1 = $request->user();
-        $Player2 = $Room->Owner();
-
-        return Inertia::render('Game/GameCanvas',['Room'=>new RoomResource($Room),'Game'=>$Active_Game,
-            'Players'=>['Player1'=>$Player1,'Player2'=>$Player2]]);
-    }
     /**
      * Display the specified resource.
      *
@@ -99,15 +102,24 @@ class GameController extends Controller {
      * @return \Inertia\Response
      */
 
+    protected function nextPlayer($players,$last) {
+        return $last === $players->player1 ? $players->player2 : $players->player1;
+    }
+
     public function showWinner(Request $request) {
-        $input = $request->only('GameId');
-        $Game = Game::find($input['GameId']);
+        $input = $request->only('game_id');
+        $Game = Game::find($input['game_id']);
         $Player1 = User::find($Game->players()->player1);
         $Player2 = User::find($Game->players()->player2);
-        if($Game->winner) {
+        $has_fled = null;
+        $Last_State = GameState::where('game_id',$Game->id)->orderBy('sequence_number', 'desc')->first();
+        if($Last_State->status() === "3")
+            $has_fled = $this->nextPlayer($Game->players(),$Game->winner);
+
+        if(!is_null($Game->winner)) {
             $Winner = User::find($Game->winner);
             return Inertia::render('Game/WinningScreen',
-                ['Game'=>$Game,'Winner'=>$Winner,'Player1'=>$Player1,'Player2'=>$Player2]);
+                ['Game'=>$Game,'Winner'=>$Winner,'Player1'=>$Player1,'Player2'=>$Player2,'has_fled'=>$has_fled]);
         }
     }
 
@@ -128,9 +140,17 @@ class GameController extends Controller {
      * @param Game $game
      * @return Response
      */
-    public function update(Request $request, Game $game) {
-        //
-    }
+//    public function setCanvasRendered(Request $request) {
+//        $input = $request->only('game_id');
+//        $Game = Game::find($input['game_id']);
+//        $Players = $Game->players();
+//        if($request->user()->id === $Players->player1)
+//            $Game->OwnerCanvasRendered = true;
+//        else if($request->user()->id === $Players->player2)
+//            $Game->PlayerCanvasRendered = true;
+//
+//        $Game->save();
+//    }
 
     /**
      * Remove the specified resource from storage.
@@ -143,6 +163,9 @@ class GameController extends Controller {
     }
 
     public function initiate(Game $game) {
+        if($game->hasEnded())
+            Redirect::route('Winner',['game_id'=>$game->id]);
+
         $players = $game->players();
         $player1 = $players->player1;
         $player2 = $players->player2;
@@ -164,21 +187,23 @@ class GameController extends Controller {
 
         $Initial_State->save();
 
-        return new GameStateResource($Initial_State);
+        return new GameStateResource($Initial_State,null);
     }
 
     public function checkEnemyMove(Request $request) {
         $input = $request->only('GameId');
         $Game = Game::find($input['GameId']);
-//        if($Game->winner){
-//            return Redirect::route('Winner',['GameId'=>$Game->id]);
-//        }
+
+        if($Game->hasEnded())
+            Redirect::route('Winner',['game_id'=>$Game->id]);
+
         $State = GameState::where('game_id',$input['GameId'])->orderByDesc('sequence_number')->first();
-        if($State->next_player() === $request->user()->id) {
-            return Inertia::render('Game/GameCanvas',['Game'=>new GameStateResource($State),
-                'Players'=>['Player1'=>$request->user()->id,'Player2'=>$State->next_player],'GameObject'=>$Game]);
-        }
-//            return $State[0]->next_player()===$request->user()->id;
+        $Last = Move::where('game_id',$Game->id)->orderByDesc('created_at')->get()->first();
+//        if($Last->status() === 2)
+//            $Last = Move::where('game_id',$Game->id)->orderByDesc('created_at')->get()[1];
+
+        return Inertia::render('Game/GameCanvas',['Game'=>new GameStateResource($State,$Last),
+            'Players'=>['Player1'=>$request->user()->id,'Player2'=>$State->next_player],'GameObject'=>$Game]);
     }
 }
 

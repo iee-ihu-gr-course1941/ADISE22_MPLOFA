@@ -15,7 +15,7 @@ return new class extends Migration {
             $table->uuid('id');
             $table->timestamps();
 //          The reference to the Users Table indicating the winner of the current game.
-            $table->foreignUuid('winner')->default('');
+            $table->foreignUuid('winner')->nullable()->default(null);
 //          A boolean indicating if the game is graded.
 //          ( Winner will have his total points increased and losers will have theirs decreased).
             $table->boolean('graded')->default(false);

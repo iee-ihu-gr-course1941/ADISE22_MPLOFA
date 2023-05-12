@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder {
             'name'=>'Giorgos Tsourdiou',
             'email'=>'geontsou52@gmail.com',
             'password' => Hash::make('Test@laravel2022'),
+                'canAdministrate' => true,
                 ]
         );
         User::factory(1)->create([

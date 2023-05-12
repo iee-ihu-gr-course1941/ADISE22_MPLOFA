@@ -15,6 +15,8 @@ return new class extends Migration {
             $table->uuid('id');
             $table->string('Name');
             $table->string('Password')->nullable();
+            $table->boolean('InviteOnly')->default(false);
+            $table->string('Invitation_Link');
             $table->integer("Capacity");
             $table->foreignUuid('OwnerId')->nullable();
             $table->foreignUuid('PlayerId')->nullable();
@@ -32,6 +34,6 @@ return new class extends Migration {
      * @return void
      */
     public function down() {
-        Schema::dropIfExists('lobbies');
+        Schema::dropIfExists('rooms');
     }
 };

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use function Termwind\render;
 
 class Game extends Model {
 
@@ -27,5 +28,9 @@ class Game extends Model {
 
     public function graded() {
         return $this->graded === 1;
+    }
+
+    public function hasEnded() {
+        return !is_null($this->winner);
     }
 }

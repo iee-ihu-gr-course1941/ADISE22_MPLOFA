@@ -1,23 +1,21 @@
 import {Head, Link, useForm} from "@inertiajs/inertia-react";
 import Authenticated from "../Layouts/AuthenticatedLayout";
-import {PersonalInfo} from "../Profile/PersonalInfo";
 import {Rooms} from "../Profile/Rooms";
 import {Inertia} from "@inertiajs/inertia";
 import {useEffect, useState} from "react";
-import {Room} from "../Game Components/Room";
+import {UserContext} from "../Contexts/UserContext";
+import {BeforeYouPlay} from "../Profile/BeforeYouPlay";
+import {BugSubmissionForm} from "../Bugs/BugSubmissionForm";
+import {ErrorContext} from "../Contexts/ErrorContext";
+import {InviteFriends} from "../Modals/InviteFriends";
+import {GotKickedModal} from "../Modals/GotKickedModal";
+import {GameRules} from "../Modals/GameRules";
+import {InviteLinkContext} from "../Contexts/InviteLinkContext";
 
 export default function Dashboard(props) {
-    console.log(props);
-    const  { data, setData, post, processing, errors, reset } = useForm({
-        Name: "",
-        Password: "",
-        Capacity: 2,
-    }), [RoomsList,setRooms] = useState(props.Rooms.Rooms),submit = (e) => {
-        e.preventDefault();
-        Inertia.post(route('New_Room'),data,{only:['Rooms'],onSuccess:(res)=>{setRooms(res.props.Rooms)}}
-        );
-    },[roomDoesntExistErrorVisible,setRoomDoesntExistErrorVisible] = useState(!!props.errors.Room_Doesnt_Exist);
-
+    const [roomDoesntExistErrorVisible,setRoomDoesntExistErrorVisible] = useState(!!props.errors.Room_Doesnt_Exist),
+    [RoomsList,setRooms] = useState(props.Rooms.Rooms),
+    [kicked,setKicked] = useState(props.Kicked !== null);
     useEffect(()=> {
         const AlertVisible = roomDoesntExistErrorVisible && setTimeout(() => {
             setRoomDoesntExistErrorVisible(false);
@@ -26,33 +24,61 @@ export default function Dashboard(props) {
 
         return ()=>clearTimeout(AlertVisible);
     },[props.errors]);
-
+    useEffect(()=>  {
+        document.title = 'Home';
+    });
     return (
-        <Authenticated>
-            <Head title="Dashboard" ><title>Dashboard</title></Head>
-                <div className='container p-3'>
-                    <div className={'row'}>
-                        {/*<div className={'col-6'}>*/}
-                        {/*    <PersonalInfo User={props.auth.user}>*/}
-
-                        {/*    </PersonalInfo>*/}
-                        {/*</div>*/}
-                        <div className={'col-12'}>
-                            <Rooms rooms={RoomsList} onSubmit={submit} Data={{data, setData,errors}}>
-                                <Link href={route('home')} data={{RoomId:Room.id}} as={'button'}
-                                      className="btn btn-outline-dark text-center mt-4" type="button" only={['Rooms']}>
-                                    Reload
-                                </Link>
-                            </Rooms>
-                            {
-                                roomDoesntExistErrorVisible &&
-                                <div className="alert alert-danger text-center" role="alert">
-                                    This Room doesn't exist anymore.
+        <InviteLinkContext.Provider value={props.InviteLink}>
+            <ErrorContext.Provider value={props.errors}>
+                <UserContext.Provider value={props.auth.user}>
+                    <Authenticated>
+                        <Head title="Dashboard" >
+                            <title>Dashboard</title>
+                        </Head>
+                        <div className='container p-3 h-100 vw-100'>
+                            <div className={'row gx-0'}>
+                                <div className={'col-12 text-center h-auto'}>
+                                    <div className={'row'}>
+                                        <div className={'col'}>
+                                            <button type="button btn-sm w-25" className="btn btn-outline-danger mb-3" data-bs-toggle="modal"
+                                                    data-bs-target="#exampleModal">
+                                                Please read before you play!
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <GameRules></GameRules>
+                                    <div className={'row'}>
+                                        <div className={'col'}>
+                                            {/*<UserContext.Provider value={props.auth.user}>*/}
+                                            <Rooms rooms={RoomsList}>
+                                                <Link href={route('home')} as={'button'}
+                                                      className="btn btn-outline-dark text-center mt-4" type="button"
+                                                      only={['Rooms']} preserveScroll={true}>
+                                                    Reload Rooms
+                                                </Link>
+                                            </Rooms>
+                                            {/*</UserContext.Provider>*/}
+                                        </div>
+                                    </div>
                                 </div>
-                            }
+                            </div>
+                            <div className={'row align-self-end text-center'}>
+                                <div className={'col'}>
+                                    <div className={'col-12 mt-5'}>
+                                        <BugSubmissionForm>
+
+                                        </BugSubmissionForm>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
-        </Authenticated>
+                        <BeforeYouPlay>
+
+                        </BeforeYouPlay>
+                        {props.Kicked !== null && <GotKickedModal state={{kicked,setKicked}} report={props.Kicked}></GotKickedModal>}
+                    </Authenticated>
+                </UserContext.Provider>
+            </ErrorContext.Provider>
+        </InviteLinkContext.Provider>
     )
 }

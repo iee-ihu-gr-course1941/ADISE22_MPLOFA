@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Inertia\Inertia;
+use function PHPUnit\Framework\isNull;
 
 class RegisteredUserController extends Controller {
     /**
@@ -18,10 +19,11 @@ class RegisteredUserController extends Controller {
      *
      * @return \Inertia\Response
      */
-    public function create()
-    {
+    public function create($refId) {
+
         return Inertia::render('Auth/Login_Register',[
             'Active' => 'Register',
+            'RefId' => $refId,
         ]);
     }
 
@@ -39,11 +41,13 @@ class RegisteredUserController extends Controller {
             'email' => 'required|string|email|max:255|unique:users',
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
-
+        $input = $request->only(['name','email','password','iee','refUserID']);
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'name' => $input['name'],
+            'email' => $input['email'],
+            'password' => Hash::make($input['password']),
+            'isIEE' => $input['iee'],
+            'refUser' => $input['refUserID'] ?? null,
         ]);
 
         event(new Registered($user));
@@ -51,5 +55,26 @@ class RegisteredUserController extends Controller {
         Auth::login($user);
 
         return redirect(RouteServiceProvider::HOME);
+    }
+
+    public function edit(Request $request) {
+        $User = $request->user();
+        $input = $request->only(['Name','Email']);
+        if($User->name !== $input['Name'])
+            $User->name = $input['Name'];
+        if($User->email !== $input['Email'])
+            $User->name = $input['Email'];
+
+        $User->save();
+    }
+
+    public function destroy(Request $request) {
+        $input = $request->only(['userID']);
+        if(isset($input['userID'])){
+            $User = User::find($input['userID']);
+            if(!is_null($User) && !$User->isAdmin())
+                $User->delete();
+        }
+        return back();
     }
 }

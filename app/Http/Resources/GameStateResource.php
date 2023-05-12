@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Models\Game;
+use App\Models\Move;
 use App\Models\User;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -12,7 +13,16 @@ class GameStateResource extends JsonResource {
      *
      * @param  \Illuminate\Http\Request  $request
      * @return array|\Illuminate\Contracts\Support\Arrayable|\JsonSerializable
+     *
      */
+    public function __construct($resource, $last_Move)
+    {
+        // Ensure you call the parent constructor
+        parent::__construct($resource);
+        $this->resource = $resource;
+
+        $this->Last_move = $last_Move;
+    }
     public function toArray($request) {
         if($this->bluff_has_been_called) {
             $Cards_played = 'Bluff_Called';
@@ -41,6 +51,7 @@ class GameStateResource extends JsonResource {
         $Game = Game::find($this->game_id);
         $Players = $Game->players();
         $Player_Cards = $this->getPlayerCards(json_decode($this->player_cards),$User);
+        $Last_Move = $this->Last_move;
         return [
             'game_id' => $this->game_id,
             'sequence_number' => $this->sequence_number,
@@ -49,6 +60,8 @@ class GameStateResource extends JsonResource {
             'status' => $this->status,
             'player_cards' => $Player_Cards,
             'cards_played' => $Cards_played,
+            'previous_move' => $this->when(!is_null($Last_Move),new MoveResource($Last_Move)),
+            'test' => $this->test,
         ];
     }
 

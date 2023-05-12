@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
@@ -12,7 +13,7 @@ use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
-    Route::get('register', [RegisteredUserController::class, 'create'])
+    Route::get('register/{refId?}', [RegisteredUserController::class, 'create'])->defaults('refId',null)
                 ->name('register');
 
     Route::post('register', [RegisteredUserController::class, 'store']);
@@ -54,4 +55,9 @@ Route::middleware('auth')->group(function () {
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
                 ->name('logout');
+
+    Route::patch('User/UpdateInfo',[RegisteredUserController::class,'edit'])->name('User.Update');
+    Route::delete('User/Delete',[RegisteredUserController::class,'destroy'])->middleware(['admin'])->name('User.Delete');
+
+    Route::get('/AdminPanel',[AdminController::class,'show'])->middleware(['admin'])->name('AdminPanel');
 });

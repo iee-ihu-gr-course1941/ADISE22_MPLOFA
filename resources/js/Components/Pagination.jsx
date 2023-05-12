@@ -28,7 +28,6 @@ export function Pagination(props) {
             onPageChange(currentPage + 1);
         else
             onPageChange(paginationRange[0]);
-        console.log('Clicked The Pagination Cards');
     };
 
     // const onPrevious = () => {
@@ -36,9 +35,12 @@ export function Pagination(props) {
     //         onPageChange(currentPage - 1);
     // };
     let lastPage = paginationRange[paginationRange.length - 1];
-    return (<>
-        <Card key={uuid()} card={"🂠"} size={'1'} Enemy={true} isPagination={true} handleClick={onNext} color={'white'}></Card>
-    </>)
+    return (
+        <>
+        <Card key={uuid()} card={"🂠"} size={'1'} Enemy={true} isPagination={true}
+            handleClick={onNext} color={'white'} className={'pb-2 mb-2 mb-xxl-2'}>
+        </Card>
+        </>)
 
 }
 

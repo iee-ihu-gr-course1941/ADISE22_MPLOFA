@@ -19,6 +19,7 @@ return new class extends Migration {
             $table->string('password');
 //          The total points the user has gathered by playing games.
             $table->integer('points')->default(0);
+            $table->boolean('canAdministrate')->default(false);
             $table->rememberToken();
             $table->timestamps();
         });

@@ -17,7 +17,8 @@ class Room extends Model {
         'PlayerId',
         'OwnerReady',
         'PlayerReady',
-        'Game_Active'
+        'Game_Active',
+        'InviteOnly'
     ];
     protected $hidden =[
       'Password'
@@ -43,6 +44,9 @@ class Room extends Model {
     }
     public function Active() {
         return $this->GameActive;
+    }
+    public function isInviteOnly() {
+        return $this->InviteOnly;
     }
     public function Game() {
         return $this->hasOne(Game::class,'GamedId');

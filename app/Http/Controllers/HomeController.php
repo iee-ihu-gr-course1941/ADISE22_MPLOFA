@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Resources\RoomCollection;
 use App\Models\Room;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\URL;
 use Inertia\Inertia;
 
 class HomeController extends Controller {
@@ -23,7 +24,11 @@ class HomeController extends Controller {
      *
      * @return \Inertia\Response
      */
-    public function index() {
-        return Inertia::render('Dashboard',['Rooms'=>fn ()=> new RoomCollection(Room::all())]);
+    public function index(Request $request) {
+        $InviteLink = URL::route('register', ['refId' => $request->user()->id]);
+        $Kicked = $request->session()->get('Kicked');
+        $Rooms = Room::where('GameActive',0)->where('InviteOnly',0)->get();
+        return Inertia::render('Dashboard',['Rooms'=> fn ()=> new RoomCollection($Rooms),
+            'InviteLink'=>$InviteLink,'Kicked' => fn()=>$Kicked]);
     }
 }

@@ -1,4 +1,4 @@
-export function Lobbies() {
+export function Attributions() {
     return (
         <></>
     )
